@@ -1,0 +1,13 @@
+[Unit]
+Description=Modbus vcom service
+
+[Service]
+Type=simple
+WorkingDirectory=/kitty/IOT/sbin
+ExecStart=/kitty/IOT/sbin/com.sh
+Restart=on-failure
+RestartSec=2
+User=kot
+Group=kot
+[Install]
+WantedBy=multi-user.target
