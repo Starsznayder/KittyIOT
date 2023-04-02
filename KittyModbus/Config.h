@@ -4,6 +4,9 @@
 #include <mutex>
 #include <string>
 #include <QMessageBox>
+#include <QFuture>
+#include <QtConcurrent>
+#include <atomic>
 
 template<typename T>
 class ConfigValue
@@ -120,9 +123,33 @@ public:
     System systemConfig;
     FiguresWindow figuresWindow;
 
+    ~Config()
+    {
+        finish.store(true);
+        readerThreadObject.waitForFinished();
+    }
+
 private:
+    QFuture<void> readerThreadObject;
+    std::atomic<bool> finish;
+
     void loadFile(const std::string& configFilepath);
-    Config() {loadFile("ini/config.ini");};
+
+    Config()
+    {
+        loadFile("ini/config.ini");
+        finish.store(false);
+        readerThreadObject = QtConcurrent::run(this, &Config::updateThread);
+    };
+
+    void updateThread()
+    {
+        while (!finish.load())
+        {
+            QThread::sleep(5);
+            loadFile("ini/config.ini");
+        }
+    }
 };
 
 #endif // CONFIG_H

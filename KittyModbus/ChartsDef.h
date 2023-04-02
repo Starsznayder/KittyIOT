@@ -5,7 +5,9 @@
 #include <QString>
 #include <QVector>
 #include <QSharedPointer>
-
+#include <QFuture>
+#include <QtConcurrent>
+#include <atomic>
 
 class ChartsDef
 {
@@ -25,11 +27,35 @@ public:
         QVector<int> registers;
     };
 
-    QVector<QSharedPointer<ConfigValue<Def>>> defs;
+    ConfigValue<QVector<QSharedPointer<Def>>> defs;
 
-private:
+    ~ChartsDef()
+    {
+        finish.store(true);
+        readerThreadObject.waitForFinished();
+    }
+
+private:   
+    QFuture<void> readerThreadObject;
+    std::atomic<bool> finish;
+
     void loadFile(const std::string& configFilepath);
-    ChartsDef() {loadFile("ini/charts.ini");};
+
+    ChartsDef()
+    {
+        loadFile("ini/charts.ini");
+        finish.store(false);
+        readerThreadObject = QtConcurrent::run(this, &ChartsDef::reloadThread);
+    };
+
+    void reloadThread()
+    {
+        while (!finish.load())
+        {
+            QThread::sleep(5);
+            loadFile("ini/charts.ini");
+        }
+    }
 };
 
 #endif // TRIGGERS_H

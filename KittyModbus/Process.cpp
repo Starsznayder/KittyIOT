@@ -1,14 +1,16 @@
 #include "Process.h"
 #include <stdlib.h>
 
-Process::Process(Triggers::Trigger _trigger) : trigger(_trigger), updateCounter(0)
+Process::Process(int _triggerIndex) : triggerIndex(_triggerIndex), updateCounter(0)
 {
     isAlreadyOn = false;
-    int status = system(_trigger.turnOffRunPath.toStdString().c_str());
+    Triggers::Trigger trigger = Triggers::instance().triggers[triggerIndex]->get();
+
+    int status = system(trigger.turnOffRunPath.toStdString().c_str());
 
     if (status != 0)
     {
-        DummyBox::showErrorBox(_trigger.turnOffRunPath + " exit code != 0");
+        DummyBox::showErrorBox(trigger.turnOffRunPath + " exit code != 0");
     }
 }
 
@@ -42,9 +44,9 @@ int timestamp2hour(uint64_t timestamp)
     return ts.tm_hour;
 }
 
-bool Process::timerCondition(uint64_t timestamp)
+bool Process::timerCondition(uint64_t timestamp, const  Triggers::Trigger& trigger)
 {
-    if (timestamp2hour(timestamp) > trigger.runTimeFulfillmentTimeBorder && runtimeCounter < trigger.minRunTimePerDay)
+    if (timestamp2hour(timestamp) >= trigger.runTimeFulfillmentTimeBorder && runtimeCounter < trigger.minRunTimePerDay)
     {
         return true;
     }
@@ -53,6 +55,8 @@ bool Process::timerCondition(uint64_t timestamp)
 
 void Process::onData(ModbusData values)
 {
+    Triggers::Trigger trigger = Triggers::instance().triggers[triggerIndex]->get();
+
     float currentValue = trigger.filter->execute(trigger.multiregOperator->execute(values));
    // qDebug() << "currentValue:" << currentValue;
     ++updateCounter;
@@ -80,6 +84,7 @@ void Process::onData(ModbusData values)
         if (threshold(currentValue, trigger.turnOnThreshold, trigger.turnOnThresholdType) && !isAlreadyOn)
         {
             qDebug() << "turn on: timestamp2hour(timestamp): " << timestamp2hour(values.timestamp);
+             qDebug() << "runtimeCounter: " << runtimeCounter;
             isAlreadyOn = true;
             int status = system(trigger.turnOnRunPath.toStdString().c_str());
             turnOnTimestamp = values.timestamp;
@@ -88,9 +93,10 @@ void Process::onData(ModbusData values)
                 DummyBox::showErrorBox(trigger.turnOnRunPath + " exit code != 0");
             }
         }
-        else if (threshold(currentValue, trigger.turnOffThreshold, trigger.turnOffThresholdType) && isAlreadyOn && !timerCondition(values.timestamp))
+        else if (threshold(currentValue, trigger.turnOffThreshold, trigger.turnOffThresholdType) && isAlreadyOn && !timerCondition(values.timestamp, trigger))
         {
             qDebug() << "turn off: timestamp2hour(timestamp): " << timestamp2hour(values.timestamp);
+            qDebug() << "runtimeCounter: " << runtimeCounter;
             isAlreadyOn = false;
             int status = system(trigger.turnOffRunPath.toStdString().c_str());
 
@@ -99,9 +105,10 @@ void Process::onData(ModbusData values)
                 DummyBox::showErrorBox(trigger.turnOffRunPath + " exit code != 0");
             }
         }
-        else if (!isAlreadyOn && timerCondition(values.timestamp))
+        else if (!isAlreadyOn && timerCondition(values.timestamp, trigger))
         {
             qDebug() << "turn on: timestamp2hour(timestamp): " << timestamp2hour(values.timestamp);
+            qDebug() << "runtimeCounter: " << runtimeCounter;
             isAlreadyOn = true;
             int status = system(trigger.turnOnRunPath.toStdString().c_str());
             turnOnTimestamp = values.timestamp;

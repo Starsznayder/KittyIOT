@@ -15,7 +15,7 @@ void DataBufer::onData(ModbusData values)
 {
     Config& config = Config::instance();
     RegDef& regdef = RegDef::instance();
-    ChartsDef& chartsDef = ChartsDef::instance();
+    QVector<QSharedPointer<ChartsDef::Def>> defs = ChartsDef::instance().defs.get();
     const  QColor palete[6] = {QColor(Qt::blue), QColor(Qt::yellow), QColor(Qt::green), QColor(Qt::red), QColor(Qt::cyan), QColor(Qt::magenta)};
 
     if(data.size() < values.values->size())
@@ -51,9 +51,9 @@ void DataBufer::onData(ModbusData values)
         xVec[k] = -(static_cast<double>(timestamps.back() - timestamps[k]) / 1e6) / 3600.0;
     }
 
-    for (unsigned i = 0; i < chartsDef.defs.size(); ++i)
+    for (unsigned i = 0; i < defs.size(); ++i)
     {
-        QVector<int> tmp = chartsDef.defs[i]->get().registers;
+        QVector<int> tmp = defs[i]->registers;
         QVector<int> regsToTake;
         for (unsigned t = 0; t < std::min(tmp.size(), 6); ++t)
         {
@@ -82,7 +82,7 @@ void DataBufer::onData(ModbusData values)
             QSharedPointer<kitty::network::object::FigureData> fd = QSharedPointer<kitty::network::object::FigureData>::create();
             fd->header = kitty::network::object::FigureHeader(kitty::network::object::FigureHeader::ChartType::XY,
                                                               QString("Kitty"),
-                                                              chartsDef.defs[i]->get().name,
+                                                              defs[i]->name,
                                                               "Timestamp [h]",
                                                               regdef.regInfo[regsToTake[0]]->get().unit,
                                                               10,

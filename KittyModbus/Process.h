@@ -12,19 +12,19 @@ class Process : public QObject
 {
     Q_OBJECT
 public:
-    Process(Triggers::Trigger _triger);
+    Process(int _triggerIndex);
 
 public slots:
     void onData(ModbusData values);
 
 private:
-    Triggers::Trigger trigger;
+    int triggerIndex;
     bool isAlreadyOn;
     uint64_t turnOnTimestamp;
     double runtimeCounter;
     int day;
     uint64_t updateCounter;
-    bool timerCondition(uint64_t timestamp);
+    bool timerCondition(uint64_t timestamp, const  Triggers::Trigger& trigger);
 };
 
 #endif // PROCESS_H

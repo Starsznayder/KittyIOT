@@ -9,7 +9,6 @@ float operators::Sum::execute(ModbusData values)
         if (registers[i] < values.values->size())
         {
             t += (*values.values)[registers[i]];
-            //qDebug() << (*values.values)[registers[i]];
         }
     }
     return t;

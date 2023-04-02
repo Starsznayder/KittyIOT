@@ -26,14 +26,14 @@ void ChartsDef::loadFile(const std::string& configFilepath)
     int index = 0;
 
     try{
-        qDebug() << configFilepath.c_str();
         ini_parser::read_ini(configFilepath, pt);
+        QVector<QSharedPointer<Def>> tmp;
         while (!gotAll)
         {
             try {
                 std::string header = prefix + std::to_string(index);
-                defs.push_back(QSharedPointer<ConfigValue<Def>>::create(Def({QString::fromStdString(pt.get<std::string>(std::string(header + ".name"))),
-                                                                             Triggers::str2regNumers(pt.get<std::string>(header + ".registers"))})));
+                tmp.push_back(QSharedPointer<Def>::create(Def({QString::fromStdString(pt.get<std::string>(std::string(header + ".name"))),
+                                                               Triggers::str2regNumers(pt.get<std::string>(header + ".registers"))})));
             }
             catch (const property_tree::ptree_bad_path&)
             {
@@ -45,6 +45,7 @@ void ChartsDef::loadFile(const std::string& configFilepath)
             }
             ++index;
         }
+        defs.set(tmp);
     }
     catch (const ini_parser::ini_parser_error&)
     {

@@ -11,6 +11,7 @@
 
 int main(int argc, char *argv[])
 {
+    QThreadPool::globalInstance()->setMaxThreadCount(20);
     QApplication a(argc, argv);
     Config& config = Config::instance();
     const RegDef& regdef = RegDef::instance();
@@ -25,7 +26,7 @@ int main(int argc, char *argv[])
     QVector<QSharedPointer<Process>> processes;
     for (unsigned i = 0; i < triggers.triggers.size(); ++i)
     {
-        processes.push_back(QSharedPointer<Process>::create(triggers.triggers[i]->get()));
+        processes.push_back(QSharedPointer<Process>::create(i));
         QObject::connect(&modbusReader, SIGNAL(freshData(ModbusData)),
                          &*processes.back(), SLOT(onData(ModbusData)));
     }

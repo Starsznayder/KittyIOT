@@ -16,9 +16,22 @@ using ptree = boost::property_tree::ptree;
 namespace property_tree = boost::property_tree;
 namespace ini_parser = boost::property_tree::ini_parser;
 
-QSharedPointer<operators::MultiregOperator> str2operator(const std::string& value, const QVector<int>& registers)
+operators::OperatorType str2operatorType(const std::string& value)
 {
     if (value == std::string("SUM"))
+    {
+        return operators::OperatorType::SUM;
+    }
+    else
+    {
+        return operators::OperatorType::AVERAGE;
+    }
+}
+
+
+QSharedPointer<operators::MultiregOperator> createOperator(operators::OperatorType ot, const QVector<int>& registers)
+{
+    if (ot == operators::OperatorType::SUM)
     {
         return QSharedPointer<operators::Sum>::create(registers);
     }
@@ -40,17 +53,37 @@ Triggers::Trigger::ThresholdType str2thresholdType(const std::string& value)
     }
 }
 
-QSharedPointer<filters::Filter> str2filter(const std::string& value, int order)
+filters::FilterType str2filterType(const std::string& value)
 {
     if (value == std::string("MEDIAN"))
     {
-        return QSharedPointer<filters::Median>::create(order);
+        return filters::FilterType::MEDIAN;
     }
     else if (value == std::string("MEAN"))
     {
-        return QSharedPointer<filters::Mean>::create(order);
+        return filters::FilterType::MEAN;
     }
     else if (value == std::string("MIN"))
+    {
+        return filters::FilterType::MIN;
+    }
+    else
+    {
+        return filters::FilterType::MAX;
+    }
+}
+
+QSharedPointer<filters::Filter> createFilter(filters::FilterType ft, int order)
+{
+    if (ft == filters::FilterType::MEDIAN)
+    {
+        return QSharedPointer<filters::Median>::create(order);
+    }
+    else if (ft == filters::FilterType::MEAN)
+    {
+        return QSharedPointer<filters::Mean>::create(order);
+    }
+    else if (ft == filters::FilterType::MIN)
     {
         return QSharedPointer<filters::Min>::create(order);
     }
@@ -76,6 +109,43 @@ QVector<int> Triggers::str2regNumers(std::string value)
     return regs;
 }
 
+void Triggers::Trigger::update(QVector<int> _registers,
+                               filters::FilterType filterType,
+                               operators::OperatorType operatorType,
+                               int _order,
+                               float _turnOnThreshold,
+                               ThresholdType _turnOnThresholdType,
+                               QString _turnOnRunPath,
+                               float _turnOffThreshold,
+                               ThresholdType _turnOffThresholdType,
+                               QString _turnOffRunPath,
+                               int _minRunTimePerDay,
+                               int _runTimeFulfillmentTimeBorder)
+{
+    order = _order;
+    turnOnThreshold = _turnOnThreshold;
+    turnOnThresholdType = _turnOnThresholdType;
+    turnOnRunPath = _turnOnRunPath;
+    turnOffThreshold = _turnOffThreshold;
+    turnOffThresholdType = _turnOffThresholdType;
+    turnOffRunPath = _turnOffRunPath;
+    minRunTimePerDay = _minRunTimePerDay;
+    runTimeFulfillmentTimeBorder = _runTimeFulfillmentTimeBorder;
+
+    if (!filter->isCompatible(_order, filterType))
+    {
+        filter = createFilter(filterType, _order);
+        qDebug() << "update filter";
+    }
+
+    if (!multiregOperator->isCompatible(operatorType, _registers))
+    {
+        registers = _registers;
+        multiregOperator = createOperator(operatorType, _registers);
+        qDebug() << "update operator : " << multiregOperator->isCompatible(operatorType, _registers);
+    }
+}
+
 void Triggers::loadFile(const std::string& configFilepath)
 {
     ptree pt;
@@ -84,24 +154,45 @@ void Triggers::loadFile(const std::string& configFilepath)
     int index = 0;
 
     try{
-        qDebug() << configFilepath.c_str();
         ini_parser::read_ini(configFilepath, pt);
         while (!gotAll)
         {
             try {
                 std::string header = prefix + std::to_string(index);
-                triggers.push_back(QSharedPointer<ConfigValue<Trigger>>::create(Trigger({str2regNumers(pt.get<std::string>(header + ".registers")),
-                                                                                         str2operator(pt.get<std::string>(header + ".operator"), str2regNumers(pt.get<std::string>(header + ".registers"))),
-                                                                                         str2filter(pt.get<std::string>(header + ".filter"), pt.get<int>(header + ".order")),
-                                                                                         pt.get<int>(header + ".order"),
-                                                                                         pt.get<float>(header + ".turnOnThreshold"),
-                                                                                         str2thresholdType(pt.get<std::string>(header + ".turnOnThresholdType")),
-                                                                                         QString::fromStdString(pt.get<std::string>(header + ".turnOnRunPath")),
-                                                                                         pt.get<float>(header + ".turnOffThreshold"),
-                                                                                         str2thresholdType(pt.get<std::string>(header + ".turnOffThresholdType")),
-                                                                                         QString::fromStdString(pt.get<std::string>(header + ".turnOffRunPath")),
-                                                                                         pt.get<int>(header + ".minRunTimePerDay"),
-                                                                                         pt.get<int>(header + ".runTimeFulfillmentTimeBorder")})));
+                if (index >= triggers.size())
+                {
+                    triggers.push_back(QSharedPointer<ConfigValue<Trigger>>::create(Trigger({str2regNumers(pt.get<std::string>(header + ".registers")),
+                                                                                             createOperator(str2operatorType(pt.get<std::string>(header + ".operator")),
+                                                                                                            str2regNumers(pt.get<std::string>(header + ".registers"))),
+                                                                                             createFilter(str2filterType(pt.get<std::string>(header + ".filter")),
+                                                                                                          pt.get<int>(header + ".order")),
+                                                                                             pt.get<int>(header + ".order"),
+                                                                                             pt.get<float>(header + ".turnOnThreshold"),
+                                                                                             str2thresholdType(pt.get<std::string>(header + ".turnOnThresholdType")),
+                                                                                             QString::fromStdString(pt.get<std::string>(header + ".turnOnRunPath")),
+                                                                                             pt.get<float>(header + ".turnOffThreshold"),
+                                                                                             str2thresholdType(pt.get<std::string>(header + ".turnOffThresholdType")),
+                                                                                             QString::fromStdString(pt.get<std::string>(header + ".turnOffRunPath")),
+                                                                                             pt.get<int>(header + ".minRunTimePerDay"),
+                                                                                             pt.get<int>(header + ".runTimeFulfillmentTimeBorder")})));
+                }
+                else
+                {
+                    Trigger t = triggers[index]->get();
+                    t.update(str2regNumers(pt.get<std::string>(header + ".registers")),
+                             str2filterType(pt.get<std::string>(header + ".filter")),
+                             str2operatorType(pt.get<std::string>(header + ".operator")),
+                             pt.get<int>(header + ".order"),
+                             pt.get<float>(header + ".turnOnThreshold"),
+                             str2thresholdType(pt.get<std::string>(header + ".turnOnThresholdType")),
+                             QString::fromStdString(pt.get<std::string>(header + ".turnOnRunPath")),
+                             pt.get<float>(header + ".turnOffThreshold"),
+                             str2thresholdType(pt.get<std::string>(header + ".turnOffThresholdType")),
+                             QString::fromStdString(pt.get<std::string>(header + ".turnOffRunPath")),
+                             pt.get<int>(header + ".minRunTimePerDay"),
+                             pt.get<int>(header + ".runTimeFulfillmentTimeBorder"));
+                    triggers[index]->set(t);
+                }
             }
             catch (const property_tree::ptree_bad_path&)
             {

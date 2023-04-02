@@ -31,7 +31,6 @@ void Config::loadFile(const std::string& configFilepath)
 
     try {
         ini_parser::read_ini(configFilepath, pt);
-
         modbusConfig.ifaceName(pt.get<std::string>(std::string("Modbus.ifaceName")));
         modbusConfig.dataAccessInterval(pt.get<unsigned>(std::string("Modbus.dataAccessInterval")));
         modbusConfig.bitRate(pt.get<unsigned>(std::string("Modbus.bitRate")));
