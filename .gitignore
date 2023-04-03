@@ -1,2 +1,3 @@
 *.pro.user*
 *PL.ts
+build-*
