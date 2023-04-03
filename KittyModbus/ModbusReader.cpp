@@ -77,14 +77,14 @@ void ModbusReader::worker()
                                  numStopBits);
             if (ctx == nullptr)
             {
-                qDebug() << "Unable to create the libmodbus context";
+                _KE("Modbus", "[INFO][Modbus]: Unable to create the libmodbus context");
             }
             else
             {
 
                 if (modbus_connect(ctx) == -1)
                 {
-                    qDebug() << "Connection failed:" << modbus_strerror(errno);
+                    _KE("Modbus", "[INFO][Modbus]: Connection failed - " << modbus_strerror(errno));
                     modbus_free(ctx);
                 }
                 else
@@ -99,13 +99,15 @@ void ModbusReader::worker()
                         int read_val = modbus_read_input_registers(ctx, minRegAddr + k * tab_reg.size(), tab_reg.size(), tab_reg.data());
                         if(read_val==-1)
                         {
-                            qDebug() << "ERROR: " << modbus_strerror(errno);
+                            _KE("Modbus", "[INFO][Modbus]: Something went wrong - " << modbus_strerror(errno));
                         }
                         else
                         {
+                            _KI("Modbus", "[INFO][Modbus]: OK");
                             std::copy(tab_reg.begin(), tab_reg.end(), buffer.data() + k * tab_reg.size());
                         }
                     }
+
                     ModbusData output;
                     const auto p1 = std::chrono::system_clock::now();
                     output.timestamp = std::chrono::duration_cast<std::chrono::microseconds>(p1.time_since_epoch()).count();

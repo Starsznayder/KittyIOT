@@ -7,6 +7,7 @@
 #include <QFuture>
 #include <QtConcurrent>
 #include <atomic>
+#include <kittyLogs/log.h>
 
 template<typename T>
 class ConfigValue
@@ -63,9 +64,13 @@ class DummyBox{
 public:
     static void showErrorBox(const QString &message)
     {
+
+#ifdef WITH_GUI
         QMessageBox msgBox;
         msgBox.setText(message);
         msgBox.exec();
+#endif
+        _KE("Modbus", message.toStdString());
     }
 };
 
@@ -88,6 +93,12 @@ public:
         ConfigValue<unsigned> dataSizeInSinglePacket;
         ConfigValue<unsigned> numStopBits;
         ConfigValue<unsigned> numRegistersPerQuery;
+    };
+
+    struct Logs
+    {
+        ConfigValue<std::string> ip;
+        ConfigValue<unsigned> port;
     };
 
     struct System
@@ -122,6 +133,7 @@ public:
     ModbusConfig modbusConfig;
     System systemConfig;
     FiguresWindow figuresWindow;
+    Logs logs;
 
     ~Config()
     {

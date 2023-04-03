@@ -14,9 +14,9 @@ public slots:
     void onData(ModbusData values);
 
 private:
-    int year;
-    int month;
     int day;
+    int month;
+    int year;
 
     std::ofstream fileStream;
 };

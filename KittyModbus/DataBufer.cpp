@@ -6,10 +6,11 @@
 #include <QDebug>
 #include <numeric>
 
-DataBufer::DataBufer()
-{
+DataBufer::DataBufer() {}
 
-}
+uint64_t timestamp;
+QSharedPointer<QVector<float>> values;
+
 
 void DataBufer::onData(ModbusData values)
 {
@@ -23,11 +24,18 @@ void DataBufer::onData(ModbusData values)
         data.resize(values.values->size());
     }
 
-    for (unsigned i = 0; i < values.values->size(); ++i)
+    for (int i = 0; i < values.values->size(); ++i)
     {
         data[i].push_back((*values.values)[i]);
+#ifndef WITH_GUI
+        _KI("Data", "[INFO][" << regdef.regInfo[i]->get().name.toStdString() << "]: "
+            << (*values.values)[i] << regdef.regInfo[i]->get().unit.toStdString())
+#endif
     }
     timestamps.push_back(values.timestamp);
+#ifndef WITH_GUI
+    _KI("Data", "[INFO][timestamp]: " << values.timestamp);
+#endif
 
     int numElemsToRemove = 0;
     while (timestamps[numElemsToRemove] <
@@ -39,23 +47,23 @@ void DataBufer::onData(ModbusData values)
     if (numElemsToRemove > 0)
     {
         timestamps.remove(0,numElemsToRemove);
-        for (unsigned i = 0; i < data.size(); ++i)
+        for (int i = 0; i < data.size(); ++i)
         {
             data[i].remove(0,numElemsToRemove);
         }
     }
 
     QVector<float> xVec(timestamps.size());
-    for (unsigned k = 0; k < xVec.size(); ++k)
+    for (int k = 0; k < xVec.size(); ++k)
     {
         xVec[k] = -(static_cast<double>(timestamps.back() - timestamps[k]) / 1e6) / 3600.0;
     }
 
-    for (unsigned i = 0; i < defs.size(); ++i)
+    for (int i = 0; i < defs.size(); ++i)
     {
         QVector<int> tmp = defs[i]->registers;
         QVector<int> regsToTake;
-        for (unsigned t = 0; t < std::min(tmp.size(), 6); ++t)
+        for (int t = 0; t < std::min(tmp.size(), 6); ++t)
         {
             if(tmp[t] < regdef.regInfo.size() && tmp[t] >= 0)
             {
@@ -68,7 +76,7 @@ void DataBufer::onData(ModbusData values)
             float minV = std::numeric_limits<float>::infinity();
             float maxV = -std::numeric_limits<float>::infinity();
 
-            for (unsigned r = 0; r < regsToTake.size(); ++r)
+            for (int r = 0; r < regsToTake.size(); ++r)
             {
                 if (regsToTake[r] > 0 && regsToTake[r] < data.size())
                 {
@@ -92,7 +100,7 @@ void DataBufer::onData(ModbusData values)
                                                               xVec[0],
                                                               xVec.back());
             fd->series.resize(regsToTake.size());
-            for (unsigned s = 0; s < regsToTake.size(); ++s)
+            for (int s = 0; s < regsToTake.size(); ++s)
             {
                 fd->series[s] = kitty::network::object::FigureSeries(kitty::network::object::FigureSeries::LineType::LINE,
                                                                      Qt::PenStyle::SolidLine,

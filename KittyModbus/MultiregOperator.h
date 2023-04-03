@@ -16,7 +16,7 @@ class MultiregOperator
 public:
     MultiregOperator(const QVector<int> &_registers)
     {
-        for (unsigned i = 0; i < _registers.size(); ++i)
+        for (int i = 0; i < _registers.size(); ++i)
         {
             if (_registers[i] >= 0)
             {
@@ -29,7 +29,7 @@ public:
         return 0;
     }
 
-    virtual bool isCompatible(OperatorType type, const QVector<int> &_registers)
+    virtual bool isCompatible(OperatorType, const QVector<int> &)
     {
         return false;
     }
@@ -41,7 +41,7 @@ public:
             return false;
         }
 
-        for (unsigned i = 0; i < _registers.size(); ++i)
+        for (int i = 0; i < _registers.size(); ++i)
         {
             if (registers[i] != _registers[i])
             {

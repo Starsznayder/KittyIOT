@@ -17,7 +17,7 @@ float operators::Sum::execute(ModbusData values)
 float operators::Average::execute(ModbusData values)
 {
     float t = 0;
-    for (unsigned i = 0; i < registers.size(); ++i)
+    for (int i = 0; i < registers.size(); ++i)
     {
         if (registers[i] < values.values->size())
         {

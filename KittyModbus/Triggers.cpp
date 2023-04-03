@@ -109,7 +109,8 @@ QVector<int> Triggers::str2regNumers(std::string value)
     return regs;
 }
 
-void Triggers::Trigger::update(QVector<int> _registers,
+void Triggers::Trigger::update(QString _name,
+                               QVector<int> _registers,
                                filters::FilterType filterType,
                                operators::OperatorType operatorType,
                                int _order,
@@ -122,6 +123,7 @@ void Triggers::Trigger::update(QVector<int> _registers,
                                int _minRunTimePerDay,
                                int _runTimeFulfillmentTimeBorder)
 {
+    name = _name;
     order = _order;
     turnOnThreshold = _turnOnThreshold;
     turnOnThresholdType = _turnOnThresholdType;
@@ -135,14 +137,12 @@ void Triggers::Trigger::update(QVector<int> _registers,
     if (!filter->isCompatible(_order, filterType))
     {
         filter = createFilter(filterType, _order);
-        qDebug() << "update filter";
     }
 
     if (!multiregOperator->isCompatible(operatorType, _registers))
     {
         registers = _registers;
         multiregOperator = createOperator(operatorType, _registers);
-        qDebug() << "update operator : " << multiregOperator->isCompatible(operatorType, _registers);
     }
 }
 
@@ -161,7 +161,8 @@ void Triggers::loadFile(const std::string& configFilepath)
                 std::string header = prefix + std::to_string(index);
                 if (index >= triggers.size())
                 {
-                    triggers.push_back(QSharedPointer<ConfigValue<Trigger>>::create(Trigger({str2regNumers(pt.get<std::string>(header + ".registers")),
+                    triggers.push_back(QSharedPointer<ConfigValue<Trigger>>::create(Trigger({QString::fromStdString(pt.get<std::string>(header + ".name")),
+                                                                                             str2regNumers(pt.get<std::string>(header + ".registers")),
                                                                                              createOperator(str2operatorType(pt.get<std::string>(header + ".operator")),
                                                                                                             str2regNumers(pt.get<std::string>(header + ".registers"))),
                                                                                              createFilter(str2filterType(pt.get<std::string>(header + ".filter")),
@@ -179,7 +180,8 @@ void Triggers::loadFile(const std::string& configFilepath)
                 else
                 {
                     Trigger t = triggers[index]->get();
-                    t.update(str2regNumers(pt.get<std::string>(header + ".registers")),
+                    t.update(QString::fromStdString(pt.get<std::string>(header + ".name")),
+                             str2regNumers(pt.get<std::string>(header + ".registers")),
                              str2filterType(pt.get<std::string>(header + ".filter")),
                              str2operatorType(pt.get<std::string>(header + ".operator")),
                              pt.get<int>(header + ".order"),

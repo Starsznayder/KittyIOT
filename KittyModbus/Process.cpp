@@ -1,17 +1,21 @@
 #include "Process.h"
+#include "Config.h"
 #include <stdlib.h>
+
+void errorHandler(int status, std::string pName, std::string ops)
+{
+    if (status != 0)
+    {
+        _KE(pName, "[INFO][Status]: " << ops);
+        DummyBox::showErrorBox(QString::fromStdString(pName) + " exit code != 0");
+    }
+}
 
 Process::Process(int _triggerIndex) : triggerIndex(_triggerIndex), updateCounter(0)
 {
     isAlreadyOn = false;
     Triggers::Trigger trigger = Triggers::instance().triggers[triggerIndex]->get();
-
-    int status = system(trigger.turnOffRunPath.toStdString().c_str());
-
-    if (status != 0)
-    {
-        DummyBox::showErrorBox(trigger.turnOffRunPath + " exit code != 0");
-    }
+    errorHandler(system(trigger.turnOffRunPath.toStdString().c_str()), trigger.name.toStdString(), "turn off error");
 }
 
 bool threshold(float value, float ref, Triggers::Trigger::ThresholdType tt)
@@ -58,64 +62,42 @@ void Process::onData(ModbusData values)
     Triggers::Trigger trigger = Triggers::instance().triggers[triggerIndex]->get();
 
     float currentValue = trigger.filter->execute(trigger.multiregOperator->execute(values));
-   // qDebug() << "currentValue:" << currentValue;
     ++updateCounter;
-   // qDebug() << "updateCounter: " << updateCounter;
 
     if (day != timestamp2day(values.timestamp))
     {
         runtimeCounter = 0;
         day = timestamp2day(values.timestamp);
     }
-   // qDebug() << "day: " << timestamp2day(values.timestamp);
 
     if (updateCounter >= trigger.order)
     {
-       // qDebug() << "updateCounter >= trigger.order";
-       // qDebug() << "timestamp2hour(timestamp): " << timestamp2hour(values.timestamp);
-        // qDebug() << "timerCondition(values.timestamp): " << timerCondition(values.timestamp);
         if (isAlreadyOn)
         {
             runtimeCounter += static_cast<double>(values.timestamp - turnOnTimestamp) / 1e6;
             turnOnTimestamp = values.timestamp;
-          //  qDebug() << "runtimeCounter: " << runtimeCounter;
+            _KI(trigger.name.toStdString(), "[INFO][RUNTIME]: " << runtimeCounter);
         }
 
         if (threshold(currentValue, trigger.turnOnThreshold, trigger.turnOnThresholdType) && !isAlreadyOn)
         {
-            qDebug() << "turn on: timestamp2hour(timestamp): " << timestamp2hour(values.timestamp);
-             qDebug() << "runtimeCounter: " << runtimeCounter;
+            _KI(trigger.name.toStdString(), "[INFO][Status]: RUN");
             isAlreadyOn = true;
-            int status = system(trigger.turnOnRunPath.toStdString().c_str());
+            errorHandler(system(trigger.turnOnRunPath.toStdString().c_str()), trigger.name.toStdString(), "turn on error");
             turnOnTimestamp = values.timestamp;
-            if (status != 0)
-            {
-                DummyBox::showErrorBox(trigger.turnOnRunPath + " exit code != 0");
-            }
         }
         else if (threshold(currentValue, trigger.turnOffThreshold, trigger.turnOffThresholdType) && isAlreadyOn && !timerCondition(values.timestamp, trigger))
         {
-            qDebug() << "turn off: timestamp2hour(timestamp): " << timestamp2hour(values.timestamp);
-            qDebug() << "runtimeCounter: " << runtimeCounter;
+            _KE(trigger.name.toStdString(), "[INFO][Status]: STOP");
             isAlreadyOn = false;
-            int status = system(trigger.turnOffRunPath.toStdString().c_str());
-
-            if (status != 0)
-            {
-                DummyBox::showErrorBox(trigger.turnOffRunPath + " exit code != 0");
-            }
+            errorHandler(system(trigger.turnOffRunPath.toStdString().c_str()), trigger.name.toStdString(), "turn off error");
         }
         else if (!isAlreadyOn && timerCondition(values.timestamp, trigger))
         {
-            qDebug() << "turn on: timestamp2hour(timestamp): " << timestamp2hour(values.timestamp);
-            qDebug() << "runtimeCounter: " << runtimeCounter;
+            _KW(trigger.name.toStdString(), "[INFO][Status]: RUN (timer condition)");
             isAlreadyOn = true;
-            int status = system(trigger.turnOnRunPath.toStdString().c_str());
+            errorHandler(system(trigger.turnOnRunPath.toStdString().c_str()), trigger.name.toStdString(), "turn on error");
             turnOnTimestamp = values.timestamp;
-            if (status != 0)
-            {
-                DummyBox::showErrorBox(trigger.turnOnRunPath + " exit code != 0");
-            }
         }
     }
 }

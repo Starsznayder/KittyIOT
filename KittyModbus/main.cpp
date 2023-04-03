@@ -14,6 +14,15 @@ int main(int argc, char *argv[])
     QThreadPool::globalInstance()->setMaxThreadCount(20);
     QApplication a(argc, argv);
     Config& config = Config::instance();
+
+#ifdef WITH_GUI
+    kittyLogs::logger::init(kittyLogs::logger::consoleSink);
+#else
+    kittyLogs::logger::init(kittyLogs::logger::networkSink,
+                            config.logs.ip,
+                            config.logs.port);
+#endif
+
     const RegDef& regdef = RegDef::instance();
     Triggers& triggers = Triggers::instance();
 
@@ -35,17 +44,17 @@ int main(int argc, char *argv[])
     QObject::connect(&modbusReader, SIGNAL(freshData(ModbusData)),
                      &dataBufer, SLOT(onData(ModbusData)));
 
+#ifdef WITH_GUI
     kitty::gui::FigureWindow fg(config.figuresWindow.name.get());
-
     qRegisterMetaType<QSharedPointer<kitty::network::object::FigureData>>("QSharedPointer<kitty::network::object::FigureData>");
     QObject::connect(&dataBufer, SIGNAL(gotData(QSharedPointer<kitty::network::object::FigureData>)),
                      &fg, SLOT(onData(QSharedPointer<kitty::network::object::FigureData>)));
 
     QObject::connect(&fg, SIGNAL(closeAll()),
                      &modbusReader, SLOT(onDisconnect()));
-    modbusReader.onConnect();
-
-
     fg.show();
+#endif
+
+    modbusReader.onConnect();
     return a.exec();
 }

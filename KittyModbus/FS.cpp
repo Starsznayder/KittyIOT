@@ -28,8 +28,6 @@ void FS::onData(ModbusData values)
 {
     int dd, mm, yyyy;
     std::shared_ptr<std::string> timeString = getHumanizedTime(values.timestamp, dd, mm, yyyy);
-    //qDebug() <<  dd << "-" << mm << "-" << yyyy;
-   // qDebug() << QString::fromStdString(*timeString);
 
     if (dd != day || mm != month || yyyy != year)
     {

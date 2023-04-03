@@ -33,7 +33,7 @@ public:
             LO,
             GT
         };
-
+        QString name;
         QVector<int> registers;
         QSharedPointer<operators::MultiregOperator> multiregOperator;
         QSharedPointer<filters::Filter> filter;
@@ -47,7 +47,8 @@ public:
         int minRunTimePerDay;
         int runTimeFulfillmentTimeBorder;
 
-        void update(QVector<int> _registers,
+        void update(QString _name,
+                    QVector<int> _registers,
                     filters::FilterType filterType,
                     operators::OperatorType operatorType,
                     int _order,

@@ -44,6 +44,8 @@ void Config::loadFile(const std::string& configFilepath)
         figuresWindow.showLegend(pt.get<bool>("FiguresWindow.showLegend"));
         figuresWindow.numOfCols(pt.get<unsigned>("FiguresWindow.numOfCols"));
         figuresWindow.numOfRows(pt.get<unsigned>("FiguresWindow.numOfRows"));
+        logs.ip(pt.get<std::string>(std::string("Logs.ip")));
+        logs.port(pt.get<unsigned>("Logs.port"));
     }
     catch (const property_tree::ptree_bad_path&)
     {
