@@ -1,20 +1,11 @@
-# KittyIOT
-A simple controller for electrical devices using an electricity import/export meter, equipped with some diagnostic tools. The purpose of its existence is to start or stop electrical devices depending on the time of day and the availability of electricity (for example from a PV installation). 
-
-Tested on a network composed of:
-* EASTRON SDM630M Modbus-V2 electric counter
-* USR-DR302 RS485/Ethernet converter
-* EnerGenie EG-PMS2-LAN ethernet controlled power strip
-* Single board PC running Ubuntu 20.04
+# KittyWeather
+Weather data downloader
 
 
 **Dependencies**
-* libmodbus (communiation with the electric counter)
-* Qt5 (GUI)
-* Qt5Charts (charts)
-* Boost 1.71
-* socat (RS485/Ethernet converter)
-* egctl (EG-PMS2)
+* boost 1.71
+* Qt5 (Core)
+* OpenWeather (JSON API) 
 
 **Configuration**
 Four configuration files were created and placed in the ini directory.
