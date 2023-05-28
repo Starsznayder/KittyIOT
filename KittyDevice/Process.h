@@ -36,8 +36,8 @@ private:
 
     void turnOn(const Triggers::Trigger& trigger);
     void turnOff(const Triggers::Trigger& trigger);
-    void turnOnBySun(const std::string& action);
-    void turnOffBySun(const std::string& action);
+    void turnOnBySun(const int64_t dT);
+    void turnOffBySun(const int64_t dT);
     bool timerCondition(uint64_t timestamp, const  Triggers::Trigger& trigger);
 
     QSharedPointer<ConfigValue<SunTrigger::Trigger>> sunTrigger;

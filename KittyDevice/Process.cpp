@@ -1,14 +1,16 @@
 #include "Process.h"
 #include "Config.h"
 #include <stdlib.h>
+#include "TimeFunctins.h"
 
-void errorHandler(int status, std::string pName, std::string ops)
+bool errorHandler(int status, std::string pName, std::string ops)
 {
     if (status != 0)
     {
         _KE(pName, "[INFO][Status]: " << ops);
         DummyBox::showErrorBox(QString::fromStdString(pName) + " exit code != 0");
     }
+    return status;
 }
 
 Process::Process(int _triggerIndex) : triggerIndex(_triggerIndex), updateCounter(0), isAlreadyOn(false)
@@ -28,9 +30,7 @@ void Process::onRunBySun()
     if (sunTrigger->get().thresholdType == SunTrigger::Trigger::ThresholdType::NIGHT ||
         sunTrigger->get().thresholdType == SunTrigger::Trigger::ThresholdType::DAY)
     {
-        std::string action = sunTrigger->get().actionPath.toStdString().c_str() + std::string(" ") +
-                             std::to_string(sunTrigger->get().delay) + std::string(" ") + std::to_string(0);
-        turnOffBySun(action);
+        turnOffBySun(0);
         _KE(sunTrigger->get().name.toStdString(), "[INFO][Status]: STOP");
     }
 }
@@ -49,33 +49,10 @@ bool threshold(float value, float ref, Triggers::Trigger::ThresholdType tt)
     return false;
 }
 
-int timestamp2day(uint64_t timestamp)
-{
-    std::chrono::system_clock::time_point uptime_timepoint{std::chrono::duration_cast<std::chrono::system_clock::time_point::duration>(std::chrono::microseconds(timestamp))};
-    std::time_t unix_timestamp = std::chrono::system_clock::to_time_t(uptime_timepoint);
-    struct tm ts = *localtime(&unix_timestamp);
-    return ts.tm_mday;
-}
-
-int timestamp2hour(uint64_t timestamp)
-{
-    std::chrono::system_clock::time_point uptime_timepoint{std::chrono::duration_cast<std::chrono::system_clock::time_point::duration>(std::chrono::microseconds(timestamp))};
-    std::time_t unix_timestamp = std::chrono::system_clock::to_time_t(uptime_timepoint);
-    struct tm ts = *localtime(&unix_timestamp);
-    return ts.tm_hour;
-}
-
-int timestamp2minute(uint64_t timestamp)
-{
-    std::chrono::system_clock::time_point uptime_timepoint{std::chrono::duration_cast<std::chrono::system_clock::time_point::duration>(std::chrono::microseconds(timestamp))};
-    std::time_t unix_timestamp = std::chrono::system_clock::to_time_t(uptime_timepoint);
-    struct tm ts = *localtime(&unix_timestamp);
-    return ts.tm_min;
-}
 
 bool Process::timerCondition(uint64_t timestamp, const  Triggers::Trigger& trigger)
 {
-    if (timestamp2hour(timestamp) >= trigger.runTimeFulfillmentTimeBorder && runtimeCounter < trigger.minRunTimePerDay)
+    if (kitty::timestamp2hour(timestamp) >= trigger.runTimeFulfillmentTimeBorder && runtimeCounter < trigger.minRunTimePerDay)
     {
         return true;
     }
@@ -86,7 +63,10 @@ void Process::turnOn(const Triggers::Trigger& trigger)
 {
     if (trigger.mode == Triggers::Trigger::Mode::SCRIPT)
     {
-        errorHandler(system(trigger.turnOnRunPath.toStdString().c_str()), trigger.name.toStdString(), "turn on error");
+        while(errorHandler(system(trigger.turnOnRunPath.toStdString().c_str()), trigger.name.toStdString(), "turn on error") != 0)
+        {
+            QThread::sleep(1);
+        }
     }
     else
     {
@@ -100,7 +80,10 @@ void Process::turnOff(const Triggers::Trigger& trigger)
 {
     if (trigger.mode == Triggers::Trigger::Mode::SCRIPT)
     {
-        errorHandler(system(trigger.turnOffRunPath.toStdString().c_str()), trigger.name.toStdString(), "turn off error");
+        while(errorHandler(system(trigger.turnOffRunPath.toStdString().c_str()), trigger.name.toStdString(), "turn off error") != 0)
+        {
+            QThread::sleep(1);
+        }
     }
     else
     {
@@ -122,10 +105,10 @@ void Process::onData(SensorsData values)
     float currentValue = trigger.filter->execute(trigger.multiregOperator->execute(values));
     ++updateCounter;
 
-    if (day != timestamp2day(values.timestamp))
+    if (day != kitty::timestamp2day(values.timestamp))
     {
         runtimeCounter = 0;
-        day = timestamp2day(values.timestamp);
+        day = kitty::timestamp2day(values.timestamp);
     }
 
     if (updateCounter >= trigger.order)
@@ -164,14 +147,14 @@ void Process::onData(SensorsData values)
 
         if (trigger.manualMode)
         {
-            if (trigger.oN && !isAlreadyOn)
+            if (trigger.oN && (!isAlreadyOn || trigger.mode == Triggers::Trigger::Mode::MODBUS))
             {
                 _KW(trigger.name.toStdString(), "[INFO][Status]: RUN (manual)");
                 isAlreadyOn = true;
                 turnOn(trigger);
                 turnOnTimestamp = values.timestamp;
             }
-            else if (!trigger.oN && isAlreadyOn)
+            else if (!trigger.oN && (isAlreadyOn || trigger.mode == Triggers::Trigger::Mode::MODBUS))
             {
                 _KW(trigger.name.toStdString(), "[INFO][Status]: STOP (manual)");
                 isAlreadyOn = false;
@@ -181,20 +164,20 @@ void Process::onData(SensorsData values)
         }
         else
         {
-            if (threshold(currentValue, trigger.turnOnThreshold, trigger.turnOnThresholdType) && !isAlreadyOn)
+            if (threshold(currentValue, trigger.turnOnThreshold, trigger.turnOnThresholdType) && (!isAlreadyOn || trigger.mode == Triggers::Trigger::Mode::MODBUS))
             {
                 _KI(trigger.name.toStdString(), "[INFO][Status]: RUN");
                 isAlreadyOn = true;
                 turnOn(trigger);
                 turnOnTimestamp = values.timestamp;
             }
-            else if (threshold(currentValue, trigger.turnOffThreshold, trigger.turnOffThresholdType) && isAlreadyOn && !timerCondition(values.timestamp, trigger))
+            else if (threshold(currentValue, trigger.turnOffThreshold, trigger.turnOffThresholdType) && (isAlreadyOn || trigger.mode == Triggers::Trigger::Mode::MODBUS) && !timerCondition(values.timestamp, trigger))
             {
                 _KI(trigger.name.toStdString(), "[INFO][Status]: STOP");
                 isAlreadyOn = false;
                 turnOff(trigger);
             }
-            else if (!isAlreadyOn && timerCondition(values.timestamp, trigger))
+            else if ((!isAlreadyOn || trigger.mode == Triggers::Trigger::Mode::MODBUS) && timerCondition(values.timestamp, trigger))
             {
                 _KW(trigger.name.toStdString(), "[INFO][Status]: RUN (timer condition)");
                 isAlreadyOn = true;
@@ -205,11 +188,17 @@ void Process::onData(SensorsData values)
     }
 }
 
-void Process::turnOnBySun(const std::string& action)
+void Process::turnOnBySun(const int64_t dT)
 {
+    std::string action = sunTrigger->get().actionPath.toStdString().c_str() + std::string(" ") +
+                         std::to_string(sunTrigger->get().delay) + std::string(" ") + std::to_string(dT);
+
     if (sunTrigger->get().mode == SunTrigger::Trigger::Mode::SCRIPT)
     {
-         errorHandler(system(action.c_str()), sunTrigger->get().name.toStdString(), "run error");
+         while(errorHandler(system(action.c_str()), sunTrigger->get().name.toStdString(), "run error") != 0)
+         {
+             QThread::sleep(1);
+         }
     }
     else
     {
@@ -219,11 +208,17 @@ void Process::turnOnBySun(const std::string& action)
     }
 }
 
-void Process::turnOffBySun(const std::string& action)
+void Process::turnOffBySun(const int64_t dT)
 {
+    std::string action = sunTrigger->get().actionPath.toStdString().c_str() + std::string(" ") +
+                         std::to_string(sunTrigger->get().delay) + std::string(" ") + std::to_string(dT);
+
     if (sunTrigger->get().mode == SunTrigger::Trigger::Mode::SCRIPT)
     {
-        errorHandler(system(action.c_str()), sunTrigger->get().name.toStdString(), "run error");
+        while(errorHandler(system(action.c_str()), sunTrigger->get().name.toStdString(), "stop error") != 0)
+        {
+            QThread::sleep(1);
+        }
     }
     else
     {
@@ -242,23 +237,23 @@ void Process::onData(kitty::network::object::Sun values)
 
     values.riseTimestamp  /= static_cast<uint64_t>(1000000);
     values.setTimestamp  /= static_cast<uint64_t>(1000000);
-    const int64_t riseHour = timestamp2hour(values.riseTimestamp * static_cast<uint64_t>(1000000));
-    const int64_t riseMinute = timestamp2minute(values.riseTimestamp * static_cast<uint64_t>(1000000));
-    const int64_t fallHour = timestamp2hour(values.setTimestamp * static_cast<uint64_t>(1000000));
-    const int64_t fallMinute = timestamp2minute(values.setTimestamp * static_cast<uint64_t>(1000000));
+    const int64_t riseHour = kitty::timestamp2hour(values.riseTimestamp * static_cast<uint64_t>(1000000));
+    const int64_t riseMinute = kitty::timestamp2minute(values.riseTimestamp * static_cast<uint64_t>(1000000));
+    const int64_t fallHour = kitty::timestamp2hour(values.setTimestamp * static_cast<uint64_t>(1000000));
+    const int64_t fallMinute = kitty::timestamp2minute(values.setTimestamp * static_cast<uint64_t>(1000000));
     _KI(sunTrigger->get().name.toStdString(), "[INFO][Sunrise]: " << riseHour << ":" << riseMinute);
     _KI(sunTrigger->get().name.toStdString(), "[INFO][Sunset]: " << fallHour << ":" << fallMinute);
 
     const auto p1 = std::chrono::system_clock::now();
     uint64_t curentTimestamp = std::chrono::duration_cast<std::chrono::seconds>(p1.time_since_epoch()).count();
 
-    const int64_t minute = timestamp2minute(curentTimestamp * static_cast<uint64_t>(1000000));
-    const int64_t hour = timestamp2hour(curentTimestamp * static_cast<uint64_t>(1000000));
+    const int64_t minute = kitty::timestamp2minute(curentTimestamp * static_cast<uint64_t>(1000000));
+    const int64_t hour = kitty::timestamp2hour(curentTimestamp * static_cast<uint64_t>(1000000));
     _KI(sunTrigger->get().name.toStdString(), "[INFO][Time]: " << hour << ":" << minute);
 
-    if (day != timestamp2day(curentTimestamp))
+    if (day != kitty::timestamp2day(curentTimestamp))
     {
-        day = timestamp2day(curentTimestamp);
+        day = kitty::timestamp2day(curentTimestamp);
         isAlreadyOn = false;
     }
 
@@ -297,9 +292,7 @@ void Process::onData(kitty::network::object::Sun values)
             _KW(sunTrigger->get().name.toStdString(), "[INFO][dT]: " << dT);
             if (dT > 0)
             {
-                std::string action = sunTrigger->get().actionPath.toStdString().c_str() + std::string(" ") +
-                                     std::to_string(sunTrigger->get().delay) + std::string(" ") + std::to_string(dT);
-                turnOnBySun(action);
+                turnOnBySun(dT);
                 isAlreadyOn = true;
                 _KW(sunTrigger->get().name.toStdString(), "[INFO][Run]: " << hour << ":" << minute);
 
@@ -324,9 +317,7 @@ void Process::onData(kitty::network::object::Sun values)
             _KW(sunTrigger->get().name.toStdString(), "[INFO][dT]: " << dT);
             if (dT > 0)
             {
-                std::string action = sunTrigger->get().actionPath.toStdString().c_str() + std::string(" ") +
-                                     std::to_string(sunTrigger->get().delay) + std::string(" ") + std::to_string(dT);
-                turnOnBySun(action);
+                turnOnBySun(dT);
                 isAlreadyOn = true;
                 _KI(sunTrigger->get().name.toStdString(), "[INFO][Run]: " << hour << ":" << minute);
             }
@@ -339,23 +330,18 @@ void Process::onData(kitty::network::object::Sun values)
                  ((hour * 3600 + minute * 60) + sunTrigger->get().offset > fallHour * 3600 + fallMinute * 60 ||
                   (hour * 3600 + minute * 60) - sunTrigger->get().offset < riseHour * 3600 + riseMinute * 60))
         {
-
-                std::string action = sunTrigger->get().actionPath.toStdString().c_str() + std::string(" ") +
-                                     std::to_string(sunTrigger->get().delay) + std::string(" ") + std::to_string(0);
-                turnOnBySun(action);
-                isAlreadyOn = true;
-                _KI(sunTrigger->get().name.toStdString(), "[INFO][Run]: " << hour << ":" << minute);
+            turnOnBySun(0);
+            isAlreadyOn = true;
+            _KI(sunTrigger->get().name.toStdString(), "[INFO][Run]: " << hour << ":" << minute);
 
         }
         else if (sunTrigger->get().thresholdType == SunTrigger::Trigger::ThresholdType::NIGHT &&
                  ((hour * 3600 + minute * 60) + sunTrigger->get().offset < fallHour * 3600 + fallMinute * 60) &&
                  ((hour * 3600 + minute * 60) - sunTrigger->get().offset > riseHour * 3600 + riseMinute * 60))
         {
-                std::string action = sunTrigger->get().actionPath.toStdString().c_str() + std::string(" ") +
-                                     std::to_string(sunTrigger->get().delay) + std::string(" ") + std::to_string(0);
-                turnOffBySun(action);
-                isAlreadyOn = false;
-                _KI(sunTrigger->get().name.toStdString(), "[INFO][Stop]: " << hour << ":" << minute);
+            turnOffBySun(0);
+            isAlreadyOn = false;
+            _KI(sunTrigger->get().name.toStdString(), "[INFO][Stop]: " << hour << ":" << minute);
         }
         else
         {

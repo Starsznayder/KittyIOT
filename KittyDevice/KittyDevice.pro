@@ -20,6 +20,7 @@ DEFINES += BOOST_LOG_DYN_LINK
 #DEFINES += WITH_GUI=0
 INCLUDEPATH += /kitty/include
 INCLUDEPATH += ../network
+INCLUDEPATH += ../commons
 LIBS += -lboost_system -lboost_filesystem -lstdc++fs -lboost_thread -lboost_log -lpthread
 
 SOURCES += \
@@ -43,6 +44,7 @@ HEADERS += \
     Process.h \
     SunTrigger.h \
     Triggers.h \
+    ../commons/TimeFunctins.h \
     ../network/SimpleUdpServer.h \
     ../network/ModbusMulticastMSG.h \
     ../network/SensorsMulticastMSG.h \

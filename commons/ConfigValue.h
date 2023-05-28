@@ -58,7 +58,7 @@ struct DummyBox
 {
     static void showErrorBox(const QString &message)
     {
-        _KE("Modbus", message.toStdString());
+        _KE("System", message.toStdString());
     }
 };
 
