@@ -11,10 +11,16 @@ MuticastMessageParser::MuticastMessageParser() : listener(QSharedPointer<kitty::
                                                                                                                   QString::fromStdString(Config::instance().systemConfig.ip.get())))
 {
     qRegisterMetaType<SensorsData>("SensorsData");
-    connect(&*listener, SIGNAL(recvModbusMulticastMSG(QSharedPointer<kitty::network::object::ModbusMulticastMSG>)),
-            this, SLOT(onData(QSharedPointer<kitty::network::object::ModbusMulticastMSG>)));
+    qRegisterMetaType<kitty::network::object::Sun>("kitty::network::object::Sun");
+    connect(&*listener, SIGNAL(recvModbusMulticastCommand(QSharedPointer<kitty::network::object::ModbusMulticastCommand>)),
+            this, SLOT(onData(QSharedPointer<kitty::network::object::ModbusMulticastCommand>)));
+
     connect(&*listener, SIGNAL(recvSensorsMulticastMSG(QSharedPointer<kitty::network::object::SensorsMulticastMSG>)),
             this, SLOT(onSensorData(QSharedPointer<kitty::network::object::SensorsMulticastMSG>)));
+
+    connect(&*listener, SIGNAL(recvWeatherMulticastMSG(QSharedPointer<kitty::network::object::WeatherData>)),
+            this, SLOT(onWeatherData(QSharedPointer<kitty::network::object::WeatherData>)));
+
     connect(this, SIGNAL(startListening()), &*listener, SLOT(onStartListeningBoardcast()));
     connect(this, SIGNAL(stopListening()), &*listener, SLOT(onStopListening()));
     listener->moveToThread(&udpThread);
@@ -24,21 +30,16 @@ MuticastMessageParser::MuticastMessageParser() : listener(QSharedPointer<kitty::
 
 void MuticastMessageParser::onDisconnect()
 {
-     emit stopListening();
+    emit stopListening();
 }
 void MuticastMessageParser::onConnect()
 {
-     emit startListening();
+    emit startListening();
 }
 
-void MuticastMessageParser::onData(QSharedPointer<kitty::network::object::ModbusMulticastMSG> data)
+void MuticastMessageParser::onData(QSharedPointer<kitty::network::object::ModbusMulticastCommand> data)
 {
-    SensorsData buffer;
-    buffer.timestamp = data->timestamp;
-    buffer.values = QSharedPointer<QVector<float>>::create(data->regValue);
-    buffer.devIndex = 0;
-
-    emit freshData(buffer);
+    emit freshCommand(data);
 }
 
 void MuticastMessageParser::onSensorData(QSharedPointer<kitty::network::object::SensorsMulticastMSG> data)
@@ -49,4 +50,10 @@ void MuticastMessageParser::onSensorData(QSharedPointer<kitty::network::object::
     buffer.devIndex = data->deviceIndex;
 
     emit freshData(buffer);
+}
+
+void MuticastMessageParser::onWeatherData(QSharedPointer<kitty::network::object::WeatherData> data)
+{
+    kitty::network::object::Sun values = data->sun;
+    emit freshSunData(values);
 }

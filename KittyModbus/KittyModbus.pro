@@ -1,4 +1,4 @@
-QT += core gui concurrent
+QT += core gui concurrent network
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets charts
 
@@ -17,56 +17,39 @@ DEFINES += BOOST_LOG_DYN_LINK
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 #Compile With Gui, set 0 for network only version
-DEFINES += WITH_GUI=1
+#DEFINES += WITH_GUI=0
 INCLUDEPATH += /kitty/include
+INCLUDEPATH += ../network
+INCLUDEPATH += ../commons
 LIBS += -lboost_system -lboost_filesystem -lstdc++fs -lboost_thread -lboost_log -lpthread -lmodbus
-
 
 SOURCES += \
     Config.cpp \
-    DataBufer.cpp \
-    Filter.cpp \
-    MultiregOperator.cpp \
-    Process.cpp \
-    Triggers.cpp \
-    FS.cpp \
+    ../commons/FS.cpp \
     RegDef.cpp \
     ModbusReader.cpp \
-    ChartsDef.cpp \
-    main.cpp \
-    FigureWindow/PolarPlot/PolarPlot.cpp \
-    FigureWindow/PolarPlot/ChartView.cpp \
-    FigureWindow/PolarPlot/Callout.cpp \
-    FigureWindow/FigureWindow.cpp \
-    FigureWindow/FigureGroup.cpp \
-    FigureWindow/FigureData.cpp
+    KittyModbus.cpp \
+    Process.cpp \
+    ../network/SimpleUdpServer.cpp \
+    ../network/ModbusMulticastMSG.cpp \
+    ../network/SensorsMulticastMSG.cpp \
+    ../network/WeatherMulticastMSG.cpp \
+    ../network/MuticastMessageParser.cpp
 
 HEADERS += \
     Config.h \
-    DataBufer.h \
-    Filter.h \
-    MultiregOperator.h \
-    Process.h \
-    Triggers.h \
-    FS.h \
+    ../commons/FS.h \
     RegDef.h \
     ModbusReader.h \
-    ChartsDef.h \
-    FigureWindow/PolarPlot/PolarPlot.h \
-    FigureWindow/PolarPlot/Callout.h \
-    FigureWindow/PolarPlot/ui_polarwindow.h \
-    FigureWindow/PolarPlot/ChartView.h \
-    FigureWindow/FigureWindow.h \
-    FigureWindow/FigureGroup.h \
-    FigureWindow/TreeHeaderBase.h \
-    FigureWindow/FigureData.h
-
-FORMS += \
-    FigureWindow/figurewindow.ui \
-    FigureWindow/figuregroup.ui
-
+    Process.h \
+    ../network/SimpleUdpServer.h \
+    ../network/ModbusMulticastMSG.h \
+    ../network/SensorsMulticastMSG.h \
+    ../network/MuticastMessageParser.h \
+    ../network/WeatherMulticastMSG.h \
+    ../commons/ConfigValue.h
 
 linux-*{ # For Linux
-    target.path = /kitty/IOT
+    target.path = /kitty/IOT/KittyModbus
     INSTALLS += target
 }

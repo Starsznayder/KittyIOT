@@ -1,27 +1,46 @@
 #include "WeatherJSONParser.h"
+#include <QtConcurrent>
+#include <kittyLogs/log.h>
 
 
 WeatherJSONParser::WeatherJSONParser()
 {
+    finishFlag.store(false);
+    emitterThreadObject = QtConcurrent::run(this, &WeatherJSONParser::worker);
+}
 
+void WeatherJSONParser::worker()
+{
+    while(!finishFlag.load())
+    {
+        proctor.lock();
+        if(buffer)
+        {
+            emit data(buffer);
+        }
+        proctor.unlock();
+        QThread::sleep(60);
+    }
 }
 
 void WeatherJSONParser::onJsonObject(QJsonObject o)
 {
-    QSharedPointer<kitty::network::object::WeatherData> out =
-            QSharedPointer<kitty::network::object::WeatherData>::create();
+    proctor.lock();
+    buffer = QSharedPointer<kitty::network::object::WeatherData>::create();
 
     QJsonObject city = o["city"].toObject();
 
-    out->meta.city = city.value("name").toString();
-    out->meta.country = city.value("country").toString();
-    out->meta.timezone = city.value("timezone").toString();
-    out->meta.lat = city.value("coord").toObject().value("lat").toDouble();
-    out->meta.lon = city.value("coord").toObject().value("lon").toDouble();
+    buffer->meta.city = city.value("name").toString();
+    buffer->meta.country = city.value("country").toString();
+    buffer->meta.timezone = city.value("timezone").toString();
+    buffer->meta.lat = city.value("coord").toObject().value("lat").toDouble();
+    buffer->meta.lon = city.value("coord").toObject().value("lon").toDouble();
 
-    out->sun.riseTimestamp = city.value("sunrise").toInt();
-    out->sun.setTimestamp = city.value("sunset").toInt();
-    out->sun.riseTimestamp *= 1e6;
-    out->sun.setTimestamp *= 1e6;
-    emit data(out);
+    buffer->sun.riseTimestamp = city.value("sunrise").toInt();
+    buffer->sun.setTimestamp = city.value("sunset").toInt();
+    buffer->sun.riseTimestamp *= 1e6;
+    buffer->sun.setTimestamp *= 1e6;
+    proctor.unlock();
+
+    //emit data(out);
 }

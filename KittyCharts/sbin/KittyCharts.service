@@ -1,0 +1,16 @@
+[Unit]
+Description=Kitty Charts service
+
+[Service]
+Type=simple
+Environment="DISPLAY=:99"
+Environment="LD_LIBRARY_PATH=/kitty/lib"
+WorkingDirectory=/kitty/IOT/KittyCharts
+ExecStart=/kitty/IOT/KittyCharts/sbin/KittyCharts.sh
+Restart=on-failure
+RestartSec=2
+User=kot
+
+[Install]
+WantedBy=multi-user.target
+

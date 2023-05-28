@@ -6,7 +6,7 @@ namespace object{
 
 QDataStream& operator<<(QDataStream& s, const Sun& d)
 {
-    s << d.Magic << d.riseTimestamp << d.setTimestamp;
+    s << d.Magic() << d.riseTimestamp << d.setTimestamp;
     return s;
 }
 
@@ -19,7 +19,7 @@ QDataStream& operator>>(QDataStream& s, Sun& d)
 
 QDataStream& operator<<(QDataStream& s, const Meta& d)
 {
-    s << d.Magic << d.city << d.country << d.timezone << d.lat << d.lon << d.alt;
+    s << d.Magic() << d.city << d.country << d.timezone << d.lat << d.lon << d.alt;
     return s;
 }
 
@@ -37,7 +37,7 @@ QDataStream& operator>>(QDataStream& s, Meta& d)
 
 QDataStream& operator<<(QDataStream& s, const WeatherData& d)
 {
-    s << d.Magic << d.meta << d.sun;
+    s << d.Magic() << d.meta << d.sun;
     return s;
 }
 

@@ -1,0 +1,17 @@
+[Unit]
+Description=Kitty Modbus service
+
+[Service]
+Type=simple
+#DeviceAllow=char-usb_device rwm 
+Environment="DISPLAY=:99"
+Environment="LD_LIBRARY_PATH=/kitty/lib"
+WorkingDirectory=/kitty/IOT/KittyModbus
+ExecStart=/kitty/IOT/KittyModbus/sbin/KittyModbus.sh
+Restart=on-failure
+RestartSec=2
+User=kot
+
+[Install]
+WantedBy=multi-user.target
+

@@ -13,6 +13,12 @@ public:
     RegDef(const RegDef&) = delete;
     RegDef& operator=(const RegDef&) = delete;
 
+    enum class Type : unsigned
+    {
+        f = 0,
+        i = 1
+    };
+
     static RegDef& instance()
     {
         static RegDef c;
@@ -24,13 +30,15 @@ public:
         QString name;
         QString unit;
         int regAddr;
+        int size;
+        Type type;
     };
 
-    QVector<QSharedPointer<ConfigValue<RegInfo>>> regInfo;
+    QVector<QVector<QSharedPointer<ConfigValue<RegInfo>>>> regInfo;
 
 private:
     void loadFile(const std::string& configFilepath);
-    RegDef() {loadFile("ini/regDef.ini");};
+    RegDef() {loadFile("/kitty/IOT/KittyModbus/ini/regDef");};
 };
 
 #endif // CONFIG_H

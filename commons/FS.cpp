@@ -65,11 +65,25 @@ void FS::onData(SensorsData values)
     }
 }
 
+inline bool isFilePresent(const std::string& name)
+{
+    std::ifstream f(name.c_str());
+    return f.good();
+}
+
 void FS::onData(QSharedPointer<kitty::network::object::WeatherData> data)
 {
     int dd, mm, yyyy;
     std::string timeString = *getHumanizedTime(data->sun.riseTimestamp, dd, mm, yyyy);
-    fileStream.open(Config::instance().systemConfig.dataFilePath.get() + std::string("/") + timeString + ".inf");
+    std::string path = Config::instance().systemConfig.dataFilePath.get() + std::string("/") + timeString + ".inf";
+
+    if(isFilePresent(path))
+    {
+        _KI("Weather", "OK (file present)");
+        return;
+    }
+
+    fileStream.open(path);
 
     if (!fileStream.good())
     {

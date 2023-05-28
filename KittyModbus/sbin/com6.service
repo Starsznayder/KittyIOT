@@ -3,8 +3,8 @@ Description=Modbus vcom service
 
 [Service]
 Type=simple
-WorkingDirectory=/kitty/IOT/sbin
-ExecStart=/kitty/IOT/sbin/com.sh
+WorkingDirectory=/kitty/IOT/KittyModbus/sbin
+ExecStart=/kitty/IOT/KittyModbus/sbin/com.sh
 Restart=on-failure
 RestartSec=2
 User=kot

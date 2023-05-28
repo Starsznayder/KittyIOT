@@ -3,28 +3,25 @@
 
 #include <QObject>
 #include <QSharedPointer>
-
-#include "MultiregOperator.h"
-#include "Filter.h"
-#include "Triggers.h"
+#include <QString>
+#include "MuticastMessageParser.h"
 
 class Process : public QObject
 {
     Q_OBJECT
 public:
-    Process(int _triggerIndex);
+    Process();
+
+signals:
+    void start(unsigned, unsigned);
+    void stop(unsigned, unsigned);
 
 public slots:
-    void onData(ModbusData values);
+
+    void onData(QSharedPointer<kitty::network::object::ModbusMulticastCommand> values);
 
 private:
-    int triggerIndex;
-    bool isAlreadyOn;
-    uint64_t turnOnTimestamp;
-    double runtimeCounter;
-    int day;
-    uint64_t updateCounter;
-    bool timerCondition(uint64_t timestamp, const  Triggers::Trigger& trigger);
+    QVector<kitty::network::object::ModbusMulticastCommand> stateMemory;
 };
 
 #endif // PROCESS_H

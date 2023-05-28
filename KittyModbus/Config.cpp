@@ -25,27 +25,79 @@ Config::ModbusConfig::ParityCheckMethod str2parityCheckMethod(const std::string&
     }
 }
 
+Config::ModbusConfig::RegType str2regType(const std::string& value)
+{
+    if (value == std::string("STANDARD"))
+    {
+        return Config::ModbusConfig::RegType::STANDARD;
+    }
+    return Config::ModbusConfig::RegType::INPUT;
+}
+
 void Config::loadFile(const std::string& configFilepath)
 {
     ptree pt;
 
     try {
         ini_parser::read_ini(configFilepath, pt);
-        modbusConfig.ifaceName(pt.get<std::string>(std::string("Modbus.ifaceName")));
-        modbusConfig.dataAccessInterval(pt.get<unsigned>(std::string("Modbus.dataAccessInterval")));
-        modbusConfig.bitRate(pt.get<unsigned>(std::string("Modbus.bitRate")));
-        modbusConfig.parityCheckMethod(str2parityCheckMethod(pt.get<std::string>(std::string("Modbus.parityCheckMethod"))));
-        modbusConfig.dataSizeInSinglePacket(pt.get<unsigned>(std::string("Modbus.dataSizeInSinglePacket")));
-        modbusConfig.numStopBits(pt.get<unsigned>(std::string("Modbus.numStopBits")));
-        modbusConfig.numRegistersPerQuery(pt.get<unsigned>(std::string("Modbus.numRegistersPerQuery")));
+        std::string prefix("Modbus");
+        bool gotAll = false;
+        int index = 0;
+        while (!gotAll)
+        {
+
+            try {
+                std::string header = prefix + std::to_string(index);
+                if (modbusConfig.size() <= index)
+                {
+                    modbusConfig.push_back(QSharedPointer<ConfigValue<ModbusConfig>>::create(ModbusConfig({pt.get<std::string>(header + std::string(".name")),
+                                                                                                           pt.get<std::string>(header + std::string(".ifaceName")),
+                                                                                                           pt.get<unsigned>(header + std::string(".deviceAddr")),
+                                                                                                           pt.get<unsigned>(header + std::string(".dataAccessInterval")),
+                                                                                                           pt.get<unsigned>(header + std::string(".bitRate")),
+                                                                                                           str2parityCheckMethod(pt.get<std::string>(header + std::string(".parityCheckMethod"))),
+                                                                                                           pt.get<unsigned>(header + std::string(".dataSizeInSinglePacket")),
+                                                                                                           pt.get<unsigned>(header + std::string(".numStopBits")),
+                                                                                                           pt.get<unsigned>(header + std::string(".numRegistersPerQuery")),
+                                                                                                           str2regType(pt.get<std::string>(header + std::string(".regType")))})));
+                }
+                else
+                {
+                   modbusConfig[index]->set(ModbusConfig({pt.get<std::string>(header + std::string(".name")),
+                                                          pt.get<std::string>(header + std::string(".ifaceName")),
+                                                          pt.get<unsigned>(header + std::string(".deviceAddr")),
+                                                          pt.get<unsigned>(header + std::string(".dataAccessInterval")),
+                                                          pt.get<unsigned>(header + std::string(".bitRate")),
+                                                          str2parityCheckMethod(pt.get<std::string>(header + std::string(".parityCheckMethod"))),
+                                                          pt.get<unsigned>(header + std::string(".dataSizeInSinglePacket")),
+                                                          pt.get<unsigned>(header + std::string(".numStopBits")),
+                                                          pt.get<unsigned>(header + std::string(".numRegistersPerQuery")),
+                                                          str2regType(pt.get<std::string>(header + std::string(".regType")))}));
+                }
+            }
+            catch (const property_tree::ptree_bad_path&)
+            {
+                gotAll = true;
+            }
+            catch (const property_tree::ptree_bad_data&)
+            {
+                DummyBox::showErrorBox("Register definition is broken");
+            }
+            ++index;
+        }
+
+        network.ip(pt.get<std::string>(std::string("DataOutput.ip")));
+        network.port(pt.get<unsigned>("DataOutput.port"));
+
         systemConfig.dataHistoryBufferSize(pt.get<unsigned>(std::string("System.dataHistoryBufferSize")));
-        figuresWindow.name(QString::fromStdString(pt.get<std::string>(std::string("FiguresWindow.name"))));
-        figuresWindow.showGrid(pt.get<bool>("FiguresWindow.showGrid"));
-        figuresWindow.showLegend(pt.get<bool>("FiguresWindow.showLegend"));
-        figuresWindow.numOfCols(pt.get<unsigned>("FiguresWindow.numOfCols"));
-        figuresWindow.numOfRows(pt.get<unsigned>("FiguresWindow.numOfRows"));
+        systemConfig.weatherFilePath(pt.get<std::string>(std::string("System.weatherFilePath")));
+        systemConfig.dataFilePath(pt.get<std::string>(std::string("System.dataFilePath")));
+        systemConfig.logDataToFile(pt.get<bool>(std::string("System.logDataToFile")));
+
         logs.ip(pt.get<std::string>(std::string("Logs.ip")));
         logs.port(pt.get<unsigned>("Logs.port"));
+
+        systemConfig.ip(pt.get<std::string>(std::string("System.ip")));
     }
     catch (const property_tree::ptree_bad_path&)
     {

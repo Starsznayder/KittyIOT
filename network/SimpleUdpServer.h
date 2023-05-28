@@ -19,7 +19,7 @@ public:
 signals:
     void datagramReceived(const QByteArray& datagram);
     void multicastError();
-    void recvModbusMulticastMSG(QSharedPointer<kitty::network::object::ModbusMulticastMSG>);
+    void recvModbusMulticastCommand(QSharedPointer<kitty::network::object::ModbusMulticastCommand>);
     void recvSensorsMulticastMSG(QSharedPointer<kitty::network::object::SensorsMulticastMSG>);
     void recvWeatherMulticastMSG(QSharedPointer<kitty::network::object::WeatherData>);
 
@@ -30,7 +30,7 @@ public slots:
     void onStartListening();
     void onStartListeningBoardcast();
     void onReload(QString addr, quint16 port, QString ifceAddr);
-    void onModbusMulticastMSG(QSharedPointer<kitty::network::object::ModbusMulticastMSG>);
+    void onModbusMulticastCommand(QSharedPointer<kitty::network::object::ModbusMulticastCommand>);
     void onSensorsMulticastMSG(QSharedPointer<kitty::network::object::SensorsMulticastMSG>);
     void onWeatherMulticastMSG(QSharedPointer<kitty::network::object::WeatherData>);
 private:

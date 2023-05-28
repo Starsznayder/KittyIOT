@@ -11,23 +11,35 @@ namespace kitty{
 namespace network{
 namespace object{
 
-struct ModbusMulticastMSG{
-    quint64 timestamp;
-    QVector<float> regValue;
-    ModbusMulticastMSG(const QVector<float>& t, uint64_t _timestamp) : regValue(t), timestamp(_timestamp) {}
-    ModbusMulticastMSG(){};
+struct ModbusMulticastCommand
+{
+    quint32 devIdx;
+    quint32 regAddr;
+    quint32 regValue;
+    ModbusMulticastCommand(quint32 dev, quint32 addr, quint32 val) : devIdx(dev), regAddr(addr), regValue(val) {}
+    ModbusMulticastCommand(){};
 
-    friend QDataStream& operator<<(QDataStream& s, const ModbusMulticastMSG& no);
-    friend QDataStream& operator>>(QDataStream& s, ModbusMulticastMSG& no);
+    friend QDataStream& operator<<(QDataStream& s, const ModbusMulticastCommand& no);
+    friend QDataStream& operator>>(QDataStream& s, ModbusMulticastCommand& no);
 
     static bool isMagic(quint64 magic)
     {
         return magic == Magic;
     }
 
-private:
+    bool operator==(const ModbusMulticastCommand &dc)
+    {
+        return dc.devIdx == devIdx &&
+               dc.regAddr == regAddr;
+    }
 
-    static const quint64 Magic = 12345310;
+    bool operator!=(const ModbusMulticastCommand &dc)
+    {
+        return !(*this == dc);
+    }
+
+private:
+    static const quint64 Magic = 9234531081;
 };
 
 

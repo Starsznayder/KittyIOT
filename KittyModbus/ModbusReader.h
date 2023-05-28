@@ -6,31 +6,46 @@
 #include <QVector>
 #include <QFuture>
 #include <atomic>
-
-struct ModbusData
-{
-    uint64_t timestamp;
-    QSharedPointer<QVector<float>> values;
-};
+#include <mutex>
+#include <queue>
+#include "MuticastMessageParser.h"
 
 class ModbusReader : public QObject
 {
 Q_OBJECT
 public:
+
+    struct Command
+    {
+        unsigned idx;
+        unsigned addr;
+        uint16_t value;
+    };
+
     ModbusReader();
+    ~ModbusReader()
+    {
+        finish.store(true);
+        readerThreadObject.waitForFinished();
+    }
 
 signals:
-    void freshData(ModbusData values);
+    void freshData(SensorsData values);
+    void sensorsMulticastMSG(QSharedPointer<kitty::network::object::SensorsMulticastMSG>);
 
 public slots:
     void onDisconnect();
     void onConnect();
+    void onStop(unsigned, unsigned);
+    void onStart(unsigned, unsigned);
+
 
 private:
     void worker();
     QFuture<void> readerThreadObject;
     std::atomic<bool> finish;
-
+    std::mutex proctor;
+    std::queue<Command> commands;
 };
 
 #endif // MODBUSREADER_H

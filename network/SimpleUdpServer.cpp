@@ -1,6 +1,7 @@
 #include "SimpleUdpServer.h"
 #include <QNetworkInterface>
 #include <thread>
+#include <kittyLogs/log.h>
 
 namespace kitty{
 namespace network {
@@ -17,12 +18,12 @@ SimpleUdpServer::SimpleUdpServer(QString addr,
 {
     pUdpSocket_ = new QUdpSocket(this);
 
-    qRegisterMetaType<kitty::network::object::ModbusMulticastMSG>("kitty::network::object::ModbusMulticastMSG");
-    qRegisterMetaType<QSharedPointer<kitty::network::object::ModbusMulticastMSG>>("QSharedPointer<kitty::network::object::ModbusMulticastMSG>");
-    qRegisterMetaType<kitty::network::object::ModbusMulticastMSG>("kitty::network::object::SensorsMulticastMSG");
-    qRegisterMetaType<QSharedPointer<kitty::network::object::ModbusMulticastMSG>>("QSharedPointer<kitty::network::object::SensorsMulticastMSG>");
-    qRegisterMetaType<kitty::network::object::ModbusMulticastMSG>("kitty::network::object::WeatherMulticastMSG");
-    qRegisterMetaType<QSharedPointer<kitty::network::object::ModbusMulticastMSG>>("QSharedPointer<kitty::network::object::WeatherMulticastMSG>");
+    qRegisterMetaType<kitty::network::object::ModbusMulticastCommand>("kitty::network::object::ModbusMulticastCommand");
+    qRegisterMetaType<QSharedPointer<kitty::network::object::ModbusMulticastCommand>>("QSharedPointer<kitty::network::object::ModbusMulticastCommand>");
+    qRegisterMetaType<kitty::network::object::SensorsMulticastMSG>("kitty::network::object::SensorsMulticastMSG");
+    qRegisterMetaType<QSharedPointer<kitty::network::object::SensorsMulticastMSG>>("QSharedPointer<kitty::network::object::SensorsMulticastMSG>");
+    qRegisterMetaType<kitty::network::object::WeatherData>("kitty::network::object::WeatherData");
+    qRegisterMetaType<QSharedPointer<kitty::network::object::WeatherData>>("QSharedPointer<kitty::network::object::WeatherData>");
 
 }
 
@@ -66,12 +67,12 @@ void SimpleUdpServer::readAndDispathPendingDatagrams()
 
         quint64 magic;
         in >> magic;
-        if (kitty::network::object::ModbusMulticastMSG::isMagic(magic))
+        if (kitty::network::object::ModbusMulticastCommand::isMagic(magic))
         {
-            QSharedPointer<kitty::network::object::ModbusMulticastMSG> dataPtr =
-                    QSharedPointer<kitty::network::object::ModbusMulticastMSG>::create();
+            QSharedPointer<kitty::network::object::ModbusMulticastCommand> dataPtr =
+                    QSharedPointer<kitty::network::object::ModbusMulticastCommand>::create();
             in >> *dataPtr;
-            emit recvModbusMulticastMSG(dataPtr);
+            emit recvModbusMulticastCommand(dataPtr);
         }
         else if (kitty::network::object::SensorsMulticastMSG::isMagic(magic))
         {
@@ -86,6 +87,10 @@ void SimpleUdpServer::readAndDispathPendingDatagrams()
                     QSharedPointer<kitty::network::object::WeatherData>::create();
             in >> *dataPtr;
             emit recvWeatherMulticastMSG(dataPtr);
+        }
+        else
+        {
+            _KE("CRITICAL", "magic unknown");
         }
     }
 }
@@ -169,7 +174,7 @@ void SimpleUdpServer::onSensorsMulticastMSG(QSharedPointer<kitty::network::objec
     sendMsg(msg);
 }
 
-void SimpleUdpServer::onModbusMulticastMSG(QSharedPointer<kitty::network::object::ModbusMulticastMSG> msg)
+void SimpleUdpServer::onModbusMulticastCommand(QSharedPointer<kitty::network::object::ModbusMulticastCommand> msg)
 {
     sendMsg(msg);
 }

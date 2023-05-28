@@ -28,12 +28,15 @@ public:
 
 signals:
     void freshData(SensorsData values);
+    void freshCommand(QSharedPointer<kitty::network::object::ModbusMulticastCommand> values);
+    void freshSunData(kitty::network::object::Sun values);
     void startListening();
     void stopListening();
 
 public slots:
-    void onData(QSharedPointer<kitty::network::object::ModbusMulticastMSG> data);
+    void onData(QSharedPointer<kitty::network::object::ModbusMulticastCommand> data);
     void onSensorData(QSharedPointer<kitty::network::object::SensorsMulticastMSG> data);
+    void onWeatherData(QSharedPointer<kitty::network::object::WeatherData> data);
     void onDisconnect();
     void onConnect();
 

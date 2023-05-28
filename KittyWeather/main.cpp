@@ -12,7 +12,7 @@ int main(int argc, char *argv[])
     QThreadPool::globalInstance()->setMaxThreadCount(20);
     QCoreApplication a(argc, argv);
     Config& config = Config::instance();
-    kittyLogs::logger::init(kittyLogs::logger::consoleSink);
+    //kittyLogs::logger::init(kittyLogs::logger::consoleSink);
     kittyLogs::logger::init(kittyLogs::logger::networkSink,
                             config.logs.ip.get(),
                             config.logs.port.get());

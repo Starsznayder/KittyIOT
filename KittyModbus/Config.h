@@ -1,78 +1,13 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#include <mutex>
 #include <string>
-#include <QMessageBox>
 #include <QFuture>
 #include <QtConcurrent>
+#include <QVector>
+#include <QSharedPointer>
 #include <atomic>
-#include <kittyLogs/log.h>
-
-template<typename T>
-class ConfigValue
-{
-
-public:
-    ConfigValue(const T &value)
-    {
-        protector_.lock();
-        value_ = value;
-        protector_.unlock();
-    }
-
-    T get()
-    {
-        protector_.lock();
-        T value = value_;
-        protector_.unlock();
-        return value;
-    }
-
-    void set(const T &value)
-    {
-        protector_.lock();
-        value_ = value;
-        protector_.unlock();
-    }
-
-    ConfigValue& operator=(const T& value)
-    {
-        protector_.lock();
-        value_ = value;
-        protector_.unlock();
-        return *this;
-    }
-
-    ConfigValue& operator()(const T &value)
-    {
-        protector_.lock();
-        value_ = value;
-        protector_.unlock();
-        return *this;
-    }
-
-    ConfigValue(){}
-
-private:
-    T value_;
-    std::mutex protector_;
-    ConfigValue& operator=(const ConfigValue&) = delete;
-};
-
-class DummyBox{
-public:
-    static void showErrorBox(const QString &message)
-    {
-
-#ifdef WITH_GUI
-        QMessageBox msgBox;
-        msgBox.setText(message);
-        msgBox.exec();
-#endif
-        _KE("Modbus", message.toStdString());
-    }
-};
+#include "../commons/ConfigValue.h"
 
 class Config
 {
@@ -86,13 +21,28 @@ public:
             ODD = 'O'
         };
 
-        ConfigValue<std::string> ifaceName;
-        ConfigValue<unsigned> dataAccessInterval;
-        ConfigValue<unsigned> bitRate;
-        ConfigValue<ParityCheckMethod> parityCheckMethod;
-        ConfigValue<unsigned> dataSizeInSinglePacket;
-        ConfigValue<unsigned> numStopBits;
-        ConfigValue<unsigned> numRegistersPerQuery;
+        enum class RegType : uint8_t
+        {
+            STANDARD = 'N',
+            INPUT = 'E'
+        };
+
+        std::string name;
+        std::string ifaceName;
+        unsigned deviceAddr;
+        unsigned dataAccessInterval;
+        unsigned bitRate;
+        ParityCheckMethod parityCheckMethod;
+        unsigned dataSizeInSinglePacket;
+        unsigned numStopBits;
+        unsigned numRegistersPerQuery;
+        RegType regType;
+    };
+
+    struct DataOutput
+    {
+        ConfigValue<std::string> ip;
+        ConfigValue<unsigned> port;
     };
 
     struct Logs
@@ -104,21 +54,10 @@ public:
     struct System
     {
         ConfigValue<unsigned> dataHistoryBufferSize;
-    };
-
-    class FiguresWindow
-    {
-    public:
-        FiguresWindow(){}
-        ConfigValue<QString> name;
-        ConfigValue<bool> showGrid;
-        ConfigValue<bool> showLegend;
-        ConfigValue<unsigned> numOfCols;
-        ConfigValue<unsigned> numOfRows;
-
-    private:
-        FiguresWindow& operator=(const FiguresWindow&) = delete;
-        FiguresWindow(const FiguresWindow&) = delete;
+        ConfigValue<std::string> weatherFilePath;
+        ConfigValue<std::string> dataFilePath;
+        ConfigValue<bool> logDataToFile;
+        ConfigValue<std::string> ip;
     };
 
     Config(const Config&) = delete;
@@ -130,9 +69,9 @@ public:
         return c;
     }
 
-    ModbusConfig modbusConfig;
+    QVector<QSharedPointer<ConfigValue<ModbusConfig>>> modbusConfig;
+    DataOutput network;
     System systemConfig;
-    FiguresWindow figuresWindow;
     Logs logs;
 
     ~Config()
@@ -149,7 +88,7 @@ private:
 
     Config()
     {
-        loadFile("ini/config.ini");
+        loadFile("/kitty/IOT/KittyModbus/ini/config.ini");
         finish.store(false);
         readerThreadObject = QtConcurrent::run(this, &Config::updateThread);
     };
@@ -159,7 +98,7 @@ private:
         while (!finish.load())
         {
             QThread::sleep(5);
-            loadFile("ini/config.ini");
+            loadFile("/kitty/IOT/KittyModbus/ini/config.ini");
         }
     }
 };

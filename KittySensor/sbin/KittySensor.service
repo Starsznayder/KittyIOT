@@ -1,0 +1,16 @@
+[Unit]
+Description=Kitty Sensor service
+
+[Service]
+Type=simple
+Environment="DISPLAY=:99"
+Environment="LD_LIBRARY_PATH=/kitty/lib"
+WorkingDirectory=/kitty/IOT/KittySensor
+ExecStart=/kitty/IOT/KittySensor/sbin/KittySensor.sh
+Restart=on-failure
+RestartSec=2
+User=kot
+
+[Install]
+WantedBy=multi-user.target
+
