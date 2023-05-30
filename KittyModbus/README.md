@@ -11,14 +11,14 @@ Tested on a network composed of:
 **Dependencies**
 
 * libmodbus (communiation with the electric counter)
-* Qt5 (GUI)
+* Qt5 (Core)
 * Boost 1.71
 * socat (RS485/Ethernet converter)
 * KittyLogs (system management)
 
 **Configuration**
 
-Four configuration files were created and placed in the ini directory.
+Configuration files were created and placed in the ini directory.
 
 `config.ini`
 
@@ -43,6 +43,7 @@ Thouse files specifies the registers to read in each device, where X is the logi
 Sample scripts for socat configuration (USR-DR302) can be found in the sbin directory.
 
 **Compilation**
+
 Compilation can be done by the installation script or QtCreator
 
 `cd KittyModbus`
