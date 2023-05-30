@@ -24,7 +24,7 @@ Four configuration files were created and placed in the ini directory.
 
 This file contains the modbus device, multicast and logs configuration:
 
-Sections Modbus<X> constains configuration of the interface of each device, where X is the logical identyficator of the device in this system. Devices can run on one or more buses simultaneously, but they are always polled in the order defined in this file.
+Sections Modbus`<X>` constains configuration of the interface of each device, where X is the logical identyficator of the device in this system. Devices can run on one or more buses simultaneously, but they are always polled in the order defined in this file.
 
 Section DataOutput contain multicast configuration (address and port).
 
