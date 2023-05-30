@@ -4,7 +4,7 @@ A set of helpful Internet Of Things/Smart Home services. They communicate via mu
 
 **KittyWeather**
 
-It uses the OpenWeather JSON API to download the current weather forecast, save it to disk and broadcast over the network.
+It uses the OpenWeather JSON API to download the current weather forecast, saves it on HDD and broadcasts over the network.
 
 **KittySensor**
 
