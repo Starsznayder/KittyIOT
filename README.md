@@ -20,6 +20,7 @@ Receives information from sensors via multicast and controls devices (e.g. air c
 
 
 **Dependencies**
+
 * boost 1.71
 * Qt5 (Core)
 * OpenWeather (JSON API)
@@ -32,6 +33,7 @@ Receives information from sensors via multicast and controls devices (e.g. air c
 `./depinstall.sh`
 
 **Compilation**
+
 Compilation can be done by the installation script or QtCreator
 
 
